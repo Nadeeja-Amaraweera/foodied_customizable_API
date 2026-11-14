@@ -38,6 +38,7 @@ export const register = async (req:Request, res:Response) => {
     }
 }
 
+// Login Controller
 export const login = async (req:Request,res:Response) => {
     const {email , password} = req.body
 
@@ -85,4 +86,9 @@ export const login = async (req:Request,res:Response) => {
             message:"Internal Server error while login"
         })
     }
+}
+
+// Get User Details Controller
+export const getMyDetails = async () => {
+    
 }
