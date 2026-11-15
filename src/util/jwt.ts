@@ -29,7 +29,7 @@ export const signRefreshToken = (user:IUSer)=>{
         },
         JWT_REFRESH_SECRET,
         {
-            expiresIn: "30m"
+            expiresIn: "7d"
         }
     )
 }

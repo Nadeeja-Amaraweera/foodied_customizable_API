@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { UserModel, UserRole } from "../models/user.model";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken"
 import { signAccessToken, signRefreshToken } from "../util/jwt";
 import { AuthRequest } from "../middlewares/auth";
 
@@ -117,4 +118,39 @@ export const getMyDetails = async (req: AuthRequest, res: Response) => {
         }
     })
     
+}
+
+// Refresh controller
+export const refreshToken = async (req:Request, res:Response) => {
+    const {refreshToken} =  req.body
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: "Refresh token missing" });
+    }
+
+    try {
+        const decoded = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET as string
+        ) as {sub:string}
+
+        const user = await UserModel.findById(decoded.sub)
+
+        if (!user) {
+            return res.status(401).json({ message: "User Not found" });
+        }
+
+        const newAccessToken = signAccessToken(user)
+
+        res.status(200).json({
+            message:"Token Refreshed",
+            data:{
+                access_token : newAccessToken
+            }
+        })
+
+    } catch (error) {
+        console.error(error)
+        return res.status(401).json({ message: "Invalid or expired refresh token" });
+    }
 }
