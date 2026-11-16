@@ -4,6 +4,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 import { signAccessToken, signRefreshToken } from "../util/jwt";
 import { AuthRequest } from "../middlewares/auth";
+import dotenv from "dotenv"
+import { OAuth2Client } from "google-auth-library";
+import axios from "axios";
+
+dotenv.config()
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Register Controller
 export const register = async (req:Request, res:Response) => {
@@ -154,3 +161,105 @@ export const refreshToken = async (req:Request, res:Response) => {
         return res.status(401).json({ message: "Invalid or expired refresh token" });
     }
 }
+
+// Admin Login
+export const adminLogin = async (req:Request, res:Response) => {
+    const {email, password} = req.body
+
+    if (!email || !password) {
+        return res.status(400).json({ message: "Missing email or password" });
+    }
+
+    try {
+        const user = await UserModel.findOne({email})
+
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        if (!user.roles?.includes(UserRole.ADMIN)) {
+            return res.status(403).json({ message: "Access denied. Admin only." });
+        }
+
+        if (!user.password) {
+             return res.status(400).json({ message: "Password missing" });
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        const accessToken = signAccessToken(user);
+        const refreshToken = signRefreshToken(user);
+
+        res.status(200).json({
+            message: "Admin Login OK",
+            data: {
+                id: user._id,
+                email: user.email,
+                roles: user.roles,
+                access_token: accessToken,
+                refresh_token: refreshToken
+            }
+        });
+
+
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+// Google login
+export const googleLogin = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    const googleResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const { email, name, picture, sub } = googleResponse.data;
+
+    let user = await UserModel.findOne({ email });
+
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = sub;
+        await user.save();
+      }
+    } else {
+      user = await UserModel.create({
+        name: name || 'Google User',
+        email,
+        googleId: sub,
+        roles: [UserRole.USER],
+      });
+    }
+
+    const accessToken = signAccessToken(user);
+    const refreshToken = signRefreshToken(user);
+
+    res.status(200).json({
+      message: "Google login successful",
+      data: {
+        id: user._id,
+        email: user.email,
+        roles: user.roles,
+        access_token: accessToken,
+        refresh_token: refreshToken
+      }
+    });
+
+  } catch (error) {
+    console.error("Google auth error:", error);
+    res.status(401).json({ message: "Invalid Google token" });
+  }
+};

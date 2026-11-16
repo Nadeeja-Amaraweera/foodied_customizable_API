@@ -33,3 +33,15 @@ export const authenticate = async (
         })
     }
 }
+
+export const isAdmin = (req:AuthRequest, res:Response, next:NextFunction)=>{
+    if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!req.user.roles?.includes("ADMIN")) {
+        return res.status(403).json({ message: "Access Denied. Admin Only." });
+    }
+
+    next();
+}
