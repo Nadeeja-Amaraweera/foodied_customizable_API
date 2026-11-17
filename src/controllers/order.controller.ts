@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import { OrderModel } from '../models/order.model';
+import { UserModel } from '../models/user.model';
+import { AuthRequest } from '../middlewares/auth';
 import {
   validateProductCustomization,
   validateOrderItems,
@@ -89,8 +92,22 @@ export class OrderController {
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
       const orderNumber = `ORD-${orderCount + 1000}-${randomSuffix}`;
 
-      // 3. Construct Order document using backend trusted prices
+      // 3. Extract authenticated customer user ID if available
+      let userId: mongoose.Types.ObjectId | undefined = undefined;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const payload: any = jwt.verify(token, process.env.JWT_SECRET as string);
+          if (payload?.sub && mongoose.Types.ObjectId.isValid(payload.sub)) {
+            userId = new mongoose.Types.ObjectId(payload.sub);
+          }
+        } catch {}
+      }
+
+      // 4. Construct Order document using backend trusted prices
       const newOrder = new OrderModel({
+        userId,
         orderNumber,
         customer: {
           name: customer?.name?.trim() || 'Guest Customer',
@@ -129,6 +146,103 @@ export class OrderController {
       console.error('Error creating order:', error);
       res.status(500).json({
         message: 'Failed to process order',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Retrieve orders belonging only to the authenticated customer
+   * GET /api/v1/orders/my-orders
+   */
+  static async getMyOrders(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user || !req.user.sub) {
+        res.status(401).json({ message: 'Unauthorized. Please log in to view your orders.' });
+        return;
+      }
+
+      const userId = req.user.sub;
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        res.status(400).json({ message: 'Invalid authenticated user token' });
+        return;
+      }
+
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        res.status(401).json({ message: 'User account not found' });
+        return;
+      }
+
+      // Secure query: match by authenticated user ID or verified user email
+      const userCondition: any = {
+        $or: [
+          { userId: new mongoose.Types.ObjectId(userId) },
+          { 'customer.email': { $regex: new RegExp(`^${user.email.trim()}$`, 'i') } },
+        ],
+      };
+
+      // Compute status counts for the user
+      const [allCount, preparingCount, confirmedCount, cancelledCount, deliveredCount, newCount] =
+        await Promise.all([
+          OrderModel.countDocuments(userCondition),
+          OrderModel.countDocuments({ ...userCondition, status: 'preparing' }),
+          OrderModel.countDocuments({ ...userCondition, status: 'confirmed' }),
+          OrderModel.countDocuments({ ...userCondition, status: 'cancelled' }),
+          OrderModel.countDocuments({ ...userCondition, status: 'delivered' }),
+          OrderModel.countDocuments({ ...userCondition, status: 'new' }),
+        ]);
+
+      // Apply status filter if provided
+      const { status, page, limit } = req.query;
+      const queryFilter: any = { ...userCondition };
+
+      const validStatuses = ['all', 'new', 'preparing', 'confirmed', 'delivered', 'cancelled'];
+      if (status && typeof status === 'string' && status !== 'all') {
+        const normalizedStatus = status.trim().toLowerCase();
+        if (!validStatuses.includes(normalizedStatus)) {
+          res.status(400).json({
+            message: `Invalid status filter "${status}". Valid values: ${validStatuses.join(', ')}`,
+          });
+          return;
+        }
+        queryFilter.status = normalizedStatus;
+      }
+
+      // Server-side Pagination
+      const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+      const limitNum = Math.min(50, Math.max(1, parseInt(limit as string, 10) || 5));
+      const skip = (pageNum - 1) * limitNum;
+
+      const totalFiltered = await OrderModel.countDocuments(queryFilter);
+      const orders = await OrderModel.find(queryFilter)
+        .sort({ placedAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean();
+
+      res.status(200).json({
+        message: 'Customer orders retrieved successfully',
+        data: orders,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: totalFiltered,
+          totalPages: Math.ceil(totalFiltered / limitNum) || 1,
+        },
+        statusCounts: {
+          all: allCount,
+          preparing: preparingCount,
+          confirmed: confirmedCount,
+          cancelled: cancelledCount,
+          delivered: deliveredCount,
+          new: newCount,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching customer orders:', error);
+      res.status(500).json({
+        message: 'Failed to retrieve your order history',
         error: error.message,
       });
     }

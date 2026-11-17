@@ -10,6 +10,9 @@ router.post('/validate-price', OrderController.validateCustomizationPrice);
 // Submit order with price validation (public for guests / authenticated customers)
 router.post('/', OrderController.createOrder);
 
+// Customer order history (authenticated customer only)
+router.get('/my-orders', authenticate, OrderController.getMyOrders);
+
 // Admin order management endpoints
 router.get('/', authenticate, isAdmin, OrderController.getOrders);
 router.get('/:id', authenticate, isAdmin, OrderController.getOrderById);

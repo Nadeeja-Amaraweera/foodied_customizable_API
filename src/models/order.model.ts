@@ -29,6 +29,7 @@ export interface ICustomerInfo {
 export type OrderStatus = 'new' | 'preparing' | 'confirmed' | 'delivered' | 'cancelled';
 
 export interface IOrder extends Document {
+  userId?: mongoose.Types.ObjectId;
   orderNumber: string;
   customer: ICustomerInfo;
   items: IOrderItem[];
@@ -90,6 +91,12 @@ const orderItemSchema = new Schema<IOrderItem>(
 
 const orderSchema = new Schema<IOrder>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
+      index: true,
+    },
     orderNumber: {
       type: String,
       required: true,
