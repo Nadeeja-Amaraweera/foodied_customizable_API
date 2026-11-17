@@ -83,6 +83,8 @@ export const login = async (req:Request,res:Response) => {
         res.status(200).json({
             message:"OK",
             data:{
+                id: user._id,
+                name: user.name,
                 email:user.email,
                 roles:user.roles,
                 access_token: accessToken,
@@ -113,13 +115,14 @@ export const getMyDetails = async (req: AuthRequest, res: Response) => {
         })
     }
     
-    const {email, roles, _id} = user
+    const {email, roles, _id, name} = user
 
     res.status(200).json({
         message: "OK",
         data:
         {
             id:_id,
+            name,
             email,
             roles
         }
@@ -197,6 +200,7 @@ export const adminLogin = async (req:Request, res:Response) => {
             message: "Admin Login OK",
             data: {
                 id: user._id,
+                name: user.name,
                 email: user.email,
                 roles: user.roles,
                 access_token: accessToken,
