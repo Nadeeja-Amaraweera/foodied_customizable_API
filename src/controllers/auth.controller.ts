@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserModel, UserRole } from "../models/user.model";
+import { OrderModel } from "../models/order.model";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 import { signAccessToken, signRefreshToken } from "../util/jwt";
@@ -265,5 +266,93 @@ export const googleLogin = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Google auth error:", error);
     res.status(401).json({ message: "Invalid Google token" });
+  }
+};
+
+/**
+ * Admin: Get all registered users/customers with order stats
+ * GET /api/v1/auth/users
+ */
+export const getAllUsers = async (req: AuthRequest, res: Response) => {
+  try {
+    const users = await UserModel.find().select('-password').sort({ createdAt: -1 });
+
+    const orderStats = await OrderModel.aggregate([
+      {
+        $group: {
+          _id: '$userId',
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: '$totalAmount' },
+          lastOrderDate: { $max: '$placedAt' },
+        },
+      },
+    ]);
+
+    const statsMap = new Map<string, any>();
+    orderStats.forEach((stat) => {
+      if (stat._id) {
+        statsMap.set(stat._id.toString(), stat);
+      }
+    });
+
+    const enrichedUsers = users.map((u) => {
+      const stats = statsMap.get(u._id.toString());
+      return {
+        id: u._id,
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        roles: u.roles || [UserRole.USER],
+        googleId: u.googleId,
+        createdAt: (u as any).createdAt,
+        totalOrders: stats ? stats.totalOrders : 0,
+        totalSpent: stats ? stats.totalSpent : 0,
+        lastOrderDate: stats ? stats.lastOrderDate : null,
+      };
+    });
+
+    res.status(200).json({
+      message: 'Users retrieved successfully',
+      data: enrichedUsers,
+    });
+  } catch (error: any) {
+    console.error('[getAllUsers] Error:', error);
+    res.status(500).json({ message: 'Failed to retrieve users' });
+  }
+};
+
+/**
+ * Authenticated user: Update profile
+ * PUT /api/v1/auth/profile
+ */
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.sub;
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.name = name.trim();
+    await user.save();
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles,
+      },
+    });
+  } catch (error: any) {
+    console.error('[updateProfile] Error:', error);
+    res.status(500).json({ message: 'Failed to update profile' });
   }
 };

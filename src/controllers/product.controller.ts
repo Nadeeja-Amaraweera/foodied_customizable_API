@@ -80,13 +80,15 @@ export const createProduct = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Preparation time is required' });
     }
 
-    // Validate image file
-    if (!req.file) {
-      return res.status(400).json({ message: 'Product image file is required' });
+    // Validate image file or image URL
+    let imageUrl = '';
+    if (req.file) {
+      imageUrl = await uploadImage(req.file);
+    } else if (req.body.image && typeof req.body.image === 'string' && req.body.image.trim()) {
+      imageUrl = req.body.image.trim();
+    } else {
+      return res.status(400).json({ message: 'Product image file or image URL is required' });
     }
-
-    // Upload to Supabase Storage
-    const imageUrl = await uploadImage(req.file);
 
     // Customization
     const customization = parseCustomization(req.body.customization);
