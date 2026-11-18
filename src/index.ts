@@ -1,9 +1,12 @@
+import dotenv from "dotenv"
+dotenv.config()
+
 import express from "express"
 import mongoose from "mongoose";
 import AuthRouter from "./routes/auth.routes"
 import ProductRouter from "./routes/product.routes"
 import OrderRouter from "./routes/order.routes"
-import dotenv from "dotenv"
+import ChatRouter from "./routes/chat.routes"
 import cors from "cors"
 import path from "path"
 
@@ -19,6 +22,7 @@ app.use(express.urlencoded({extended:true}))
 app.use("/api/v1/auth",AuthRouter)
 app.use("/api/v1/products",ProductRouter)
 app.use("/api/v1/orders",OrderRouter)
+app.use("/api/v1/chat",ChatRouter)
 
 mongoose.connect(MONGO_URL)
 .then(()=>{
