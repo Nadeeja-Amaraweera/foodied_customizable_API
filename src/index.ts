@@ -9,7 +9,7 @@ import OrderRouter from "./routes/order.routes"
 import ChatRouter from "./routes/chat.routes"
 import cors from "cors"
 
-const MONGO_URL = process.env.MONGO_LOCAL_URL || process.env.MONGO_URL || process.env.MONGODB_URI || ""
+const MONGO_URL = process.env.MONGO_URL || process.env.MONGODB_URI || ""
 const PORT = process.env.PORT || 3000
 
 const app = express()
@@ -52,3 +52,5 @@ mongoose.connect(MONGO_URL, {
 }).catch((err)=>{
     console.log("Fail DB connection", err.message)
 })
+
+export default app;
