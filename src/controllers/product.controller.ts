@@ -8,9 +8,8 @@ import {
 } from '../models/admin.product';
 import { uploadImage, deleteImage } from '../service/upload.service';
 
-/**
- * Safely parse and sanitize product customization from FormData or JSON
- */
+
+// Safely parse and sanitize product customization from FormData or JSON
 function parseCustomization(raw: any): IProductCustomization {
   if (!raw) {
     return { sizes: [], extras: [], spiceLevels: [] };
@@ -49,9 +48,8 @@ function parseCustomization(raw: any): IProductCustomization {
   };
 }
 
-/**
- * 1. POST /api/v1/products - Create a new product with image upload
- */
+
+// Create a new product with image upload
 export const createProduct = async (req: Request, res: Response) => {
   try {
     const { name, category, price, description, preparationTime } = req.body;
@@ -123,9 +121,8 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 2. GET /api/v1/products - Retrieve all products with optional category and search filters
- */
+
+// Retrieve all products with optional category and search filters
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const { category, search } = req.query;
@@ -158,9 +155,8 @@ export const getAllProducts = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 3. GET /api/v1/products/:id - Retrieve a single product by ID
- */
+
+// Retrieve a single product by ID
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -186,9 +182,8 @@ export const getProductById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 4. PUT /api/v1/products/:id - Update product details & optional image replacement
- */
+
+// Update product details & optional image replacement
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -279,9 +274,8 @@ export const updateProduct = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 5. PATCH /api/v1/products/:id/availability - Toggle or set availability
- */
+
+// Toggle or set availability
 export const updateProductAvailability = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -316,9 +310,8 @@ export const updateProductAvailability = async (req: Request, res: Response) => 
   }
 };
 
-/**
- * 6. DELETE /api/v1/products/:id - Delete product and clean up image
- */
+
+// Delete product and clean up image
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

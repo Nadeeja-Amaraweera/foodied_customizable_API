@@ -8,7 +8,6 @@ import ProductRouter from "./routes/product.routes"
 import OrderRouter from "./routes/order.routes"
 import ChatRouter from "./routes/chat.routes"
 import cors from "cors"
-import path from "path"
 
 const MONGO_URL = process.env.MONGO_LOCAL_URL || ""
 const PORT = process.env.PORT || 3000

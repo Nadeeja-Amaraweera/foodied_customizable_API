@@ -269,10 +269,7 @@ export const googleLogin = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Admin: Get all registered users/customers with order stats
- * GET /api/v1/auth/users
- */
+// Get all registered users/customers with order stats
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const users = await UserModel.find().select('-password').sort({ createdAt: -1 });
@@ -321,10 +318,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-/**
- * Authenticated user: Update profile
- * PUT /api/v1/auth/profile
- */
+// Authenticated user: Update profile
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.sub;

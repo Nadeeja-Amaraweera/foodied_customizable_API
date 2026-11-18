@@ -11,10 +11,8 @@ import {
 } from '../service/price-validator';
 
 export class OrderController {
-  /**
-   * Validate a single customized product's price against MongoDB
-   * POST /api/v1/orders/validate-price
-   */
+
+// Validate a single customized product's price against MongoDB
   static async validateCustomizationPrice(req: Request, res: Response): Promise<void> {
     try {
       const { productId, quantity, customization, unitPrice, totalPrice } = req.body;
@@ -63,10 +61,8 @@ export class OrderController {
     }
   }
 
-  /**
-   * Submit and create a new order with backend price validation
-   * POST /api/v1/orders
-   */
+
+// Submit and create a new order with backend price validation
   static async createOrder(req: Request, res: Response): Promise<void> {
     try {
       const { items, customer, subtotal, totalAmount, paymentMethod, notes } = req.body;
@@ -151,10 +147,8 @@ export class OrderController {
     }
   }
 
-  /**
-   * Retrieve orders belonging only to the authenticated customer
-   * GET /api/v1/orders/my-orders
-   */
+
+// Retrieve orders belonging only to the authenticated customer
   static async getMyOrders(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user || !req.user.sub) {
@@ -248,10 +242,8 @@ export class OrderController {
     }
   }
 
-  /**
-   * Retrieve all orders (for admin incoming & past orders)
-   * GET /api/v1/orders
-   */
+
+// Retrieve all orders (for admin incoming & past orders)
   static async getOrders(req: Request, res: Response): Promise<void> {
     try {
       const { status } = req.query;
@@ -277,10 +269,8 @@ export class OrderController {
     }
   }
 
-  /**
-   * Retrieve single order by ID
-   * GET /api/v1/orders/:id
-   */
+
+// Retrieve single order by ID
   static async getOrderById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -308,10 +298,8 @@ export class OrderController {
     }
   }
 
-  /**
-   * Update order status
-   * PATCH /api/v1/orders/:id/status
-   */
+
+// Update order status
   static async updateOrderStatus(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
