@@ -46,9 +46,6 @@ mongoose.connect(MONGO_URL, {
 })
 .then(()=>{
     console.log(`DB Connected (${mongoose.connection.name})`)
-    app.listen(PORT,()=>{
-        console.log(`Server is running on http://localhost:${PORT}`)
-    })
 }).catch((err)=>{
     console.log("Fail DB connection", err.message)
 })
