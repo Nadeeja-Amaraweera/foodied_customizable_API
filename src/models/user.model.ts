@@ -25,7 +25,7 @@ const userSchema = new Schema<IUSer>(
             type:String,
             required: [true, 'Email is Required'],
             unique: true,
-            lowecase: true,
+            lowercase: true,
             trim: true
         },
         password:{

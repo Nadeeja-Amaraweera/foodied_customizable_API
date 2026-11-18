@@ -16,35 +16,59 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // Register Controller
 export const register = async (req:Request, res:Response) => {
     try {
-        const {name,email,password} = req.body
-        const extUser = await UserModel.findOne({email})
-        if (extUser) {
+        const {name, email, password} = req.body;
+
+        if (!name || !email || !password) {
             return res.status(400).json({
-                message:"User already exists..."
-            })
+                message: "Name, email, and password are required"
+            });
         }
 
-        const salt = bcrypt.genSaltSync(10)
-        const hashPassword = bcrypt.hashSync(password, salt)
+        if (typeof password !== 'string' || password.length < 6) {
+            return res.status(400).json({
+                message: "Password must be at least 6 characters"
+            });
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const extUser = await UserModel.findOne({ email: normalizedEmail });
+        if (extUser) {
+            return res.status(400).json({
+                message: "User already exists..."
+            });
+        }
+
+        const salt = bcrypt.genSaltSync(10);
+        const hashPassword = bcrypt.hashSync(password, salt);
 
         const newUser = new UserModel({
-            name,
-            email,
+            name: String(name).trim(),
+            email: normalizedEmail,
             password: hashPassword,
-            roles: [UserRole.USER],
-            approve:true
-        })
-        await newUser.save()
-        res.status(201).json({
-            message:"User Registerd successfully"
-        })
+            roles: [UserRole.USER]
+        });
+        await newUser.save();
+        return res.status(201).json({
+            message: "User Registerd successfully"
+        });
 
-    } catch (err) {
-        console.log(err)
-        res.status(500).json({
+    } catch (err: any) {
+        console.log(err);
+        if (err && err.code === 11000) {
+            return res.status(400).json({
+                message: "User already exists..."
+            });
+        }
+        if (err && err.name === 'ValidationError') {
+            const validationMessages = Object.values(err.errors).map((e: any) => e.message).join(', ');
+            return res.status(400).json({
+                message: validationMessages
+            });
+        }
+        return res.status(500).json({
             message: "Registration fail",
-            error: err
-        })
+            error: err?.message || err
+        });
     }
 }
 
